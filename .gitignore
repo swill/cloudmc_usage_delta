@@ -1,5 +1,6 @@
 .DS_Store
 *.toml
 *.log
+*.plist
 bin
-cloudmc_usage_delta
+cloudmc_usage_trends

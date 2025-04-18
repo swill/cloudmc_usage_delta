@@ -25,13 +25,31 @@ To run the script.
 $ make
 ```
 
-To build binaries.
+To build cross platform binaries.
 
 ```bash
 $ make build
 ```
 
-### CONFIGURATION
+## AUTOMATED RUN
+
+I have included a `plist` file to enable the automatic running of the script on a Mac on each weekday.
+
+To configure the script to run daily, do the following.
+
+1. Run `cd cloudmc_usage_trends`
+2. Run `cp local.cloudmc_usage_trends.plist.sample local.cloudmc_usage_trends.plist`
+    - Update each reference to the path `/absolute/path/to/` to the location of this repository
+3. Run `cp local.cloudmc_usage_trends.plist ~/Library/LaunchAgents`
+4. Run `launchctl load ~/Library/LaunchAgents/local.cloudmc_usage_trends.plist`
+
+
+If you wish to turn off the daily running of the script, do the following.
+```bash
+launchctl unload ~/Library/LaunchAgents/local.cloudmc_usage_trends.plist
+```
+
+## CONFIGURATION
 
 The following configurations are available.
 
@@ -45,7 +63,7 @@ CMC_KEY=""      # CloudMC API Key
 ELASTIC_CLOUDID="" # Elastic Cloud ID
 ELASTIC_KEY=""     # Elastic API Key
 
-### Optional: Slack Credentials
+### Optional: Slack Credentials & Channel
 # SLACK_TOKEN=""
 # SLACK_CHANNEL=""
 

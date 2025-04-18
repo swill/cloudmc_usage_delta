@@ -7,7 +7,7 @@ CMC_KEY=""      # CloudMC API Key
 ELASTIC_CLOUDID="" # Elastic Cloud ID
 ELASTIC_KEY=""     # Elastic API Key
 
-### Optional: Slack Credentials
+### Optional: Slack Credentials & Channel
 # SLACK_TOKEN=""
 # SLACK_CHANNEL=""
 

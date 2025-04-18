@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"html/template"
 	"log"
@@ -12,7 +13,7 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/spf13/viper"
 	"github.com/swill/cmc_core"
 	"golang.org/x/text/cases"
@@ -21,7 +22,8 @@ import (
 )
 
 var (
-	slackAPI *slack.Client
+	slackAPI    *slack.Client
+	CONFIG_PATH = flag.String("CONFIG_PATH", ".", "An optional config path")
 )
 
 var query string = `{
@@ -146,9 +148,11 @@ type QueryResult struct {
 }
 
 func main() {
+	// get the optional config flag
+	flag.Parse()
 	// read config from a file
 	viper.SetConfigName("cloudmc_usage_trends")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath(*CONFIG_PATH)
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Fatalf("Error parsing config file: %s", err)
@@ -157,6 +161,7 @@ func main() {
 	// set global defaults (if needed)
 	viper.SetDefault("QUERY_DAYS_AGO", 2)
 	viper.SetDefault("THRESHOLD", 0.05)
+	viper.SetDefault("REPORT_LINK", "https://portal.aptum.com/reporting/daily-cost-overview?usage_for=%s&group_by=PRODUCT_CATEGORY&connectionId=%s&org=%s")
 
 	// validate we have all the config required to start
 	missingConfig := false
@@ -288,20 +293,28 @@ func main() {
 						dayTwo, _ := time.Parse("20060102", scAgg.Daily.Buckets[1].KeyAsString[:8])
 
 						verb := "increased"
+						emoji := ":arrow_upper_right:"
 						if dif < 0 {
 							verb = "decreased"
+							emoji = ":arrow_lower_right:"
 						}
-						delta := math.Abs(dif/denominator) * 100
-
-						output := fmt.Sprintf("Daily usage %s by %.1f%% for '%s' in %s (%s) between %s and %s, from $%s to $%s",
-							verb, delta, *org.Name, title.String(*scData.Type), *scData.Name, dayOne.Format(dateFormat), dayTwo.Format(dateFormat),
-							cp.Sprintf("%.2f", scAgg.Daily.Buckets[0].TotalUsage.Value),
-							cp.Sprintf("%.2f", scAgg.Daily.Buckets[1].TotalUsage.Value))
+						percent := math.Abs(dif/denominator) * 100
 
 						if slackAPI != nil {
+							linkURL := fmt.Sprintf(viper.GetString("REPORT_LINK"), *org.Id, *scData.Id, *org.EntryPoint)
+							output := fmt.Sprintf("%s Daily usage *%s* by `%.1f%%` for <%s|%s> in %s (%s) between %s and %s, from *$%s* to *$%s*",
+								emoji, verb, percent, linkURL, *org.Name, title.String(*scData.Type), *scData.Name, dayOne.Format(dateFormat), dayTwo.Format(dateFormat),
+								cp.Sprintf("%.2f", scAgg.Daily.Buckets[0].TotalUsage.Value),
+								cp.Sprintf("%.2f", scAgg.Daily.Buckets[1].TotalUsage.Value))
+
 							opt := slack.MsgOptionText(output, false)
 							slackAPI.PostMessage(viper.GetString("SLACK_CHANNEL"), opt)
 						} else {
+							output := fmt.Sprintf("Daily usage %s by %.1f%% for '%s' in %s (%s) between %s and %s, from $%s to $%s",
+								verb, percent, *org.Name, title.String(*scData.Type), *scData.Name, dayOne.Format(dateFormat), dayTwo.Format(dateFormat),
+								cp.Sprintf("%.2f", scAgg.Daily.Buckets[0].TotalUsage.Value),
+								cp.Sprintf("%.2f", scAgg.Daily.Buckets[1].TotalUsage.Value))
+
 							log.Println(output)
 						}
 					}
