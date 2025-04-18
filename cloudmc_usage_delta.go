@@ -178,8 +178,8 @@ func main() {
 	// setup the time boundaries
 	dateFormat := "2006-01-02"
 	today := time.Now().Truncate(24 * time.Hour)
-	startDate := today.AddDate(0, 0, -(viper.GetInt("QUERY_DAYS_AGO") + 2)).Format(dateFormat)
-	endDate := today.AddDate(0, 0, -viper.GetInt("QUERY_DAYS_AGO")).Format(dateFormat)
+	startDate := today.AddDate(0, 0, -(viper.GetInt("QUERY_DAYS_AGO") + 1)).Format(dateFormat) // two days before the end date
+	endDate := today.AddDate(0, 0, -(viper.GetInt("QUERY_DAYS_AGO") - 1)).Format(dateFormat)   // query uses `less than``, so we have to adjust by a day
 
 	// setup the title case helper
 	title := cases.Title(language.English)
@@ -258,7 +258,11 @@ func main() {
 			for _, scAgg := range orgAgg.Connection.Buckets {
 				if len(scAgg.Daily.Buckets) > 1 {
 					dif := scAgg.Daily.Buckets[1].TotalUsage.Value - scAgg.Daily.Buckets[0].TotalUsage.Value
-					if math.Abs(dif/scAgg.Daily.Buckets[0].TotalUsage.Value) > viper.GetFloat64("THRESHOLD") {
+					denominator := scAgg.Daily.Buckets[0].TotalUsage.Value
+					if dif < 0 {
+						denominator = scAgg.Daily.Buckets[1].TotalUsage.Value
+					}
+					if math.Abs(dif/denominator) > viper.GetFloat64("THRESHOLD") {
 						cmcSC, err := getServiceConnection(scAgg.Key, client, ctx)
 						if err != nil {
 							log.Fatal("Error getting service connection: ", err)
@@ -272,7 +276,7 @@ func main() {
 						if dif < 0 {
 							verb = "decreased"
 						}
-						delta := math.Abs(dif/scAgg.Daily.Buckets[0].TotalUsage.Value) * 100
+						delta := math.Abs(dif/denominator) * 100
 
 						output := fmt.Sprintf("Daily usage %s by %.1f%% for '%s' in %s (%s) between %s and %s, from $%s to $%s",
 							verb, delta, *org.Name, title.String(*scData.Type), *scData.Name, dayOne.Format(dateFormat), dayTwo.Format(dateFormat),
