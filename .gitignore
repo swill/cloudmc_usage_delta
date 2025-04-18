@@ -1,8 +1,5 @@
 .DS_Store
 *.toml
-*.csv
-*.json
 *.log
-ssh_keys
 bin
 cloudmc_usage_delta

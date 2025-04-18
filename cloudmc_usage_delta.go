@@ -180,8 +180,10 @@ func main() {
 	today := time.Now().Truncate(24 * time.Hour)
 	startDate := today.AddDate(0, 0, -(viper.GetInt("QUERY_DAYS_AGO") + 2)).Format(dateFormat)
 	endDate := today.AddDate(0, 0, -viper.GetInt("QUERY_DAYS_AGO")).Format(dateFormat)
+
 	// setup the title case helper
 	title := cases.Title(language.English)
+	// setup the currency printer
 	cp := message.NewPrinter(message.MatchLanguage("en"))
 
 	// define the query template
@@ -218,11 +220,10 @@ func main() {
 	// get the organizations
 	orgs, err := getOrganizations(client, ctx)
 	if err != nil {
-		log.Print(err)
+		log.Fatal("Error getting organizations: ", err)
 	}
-	// jOrg, _ := json.MarshalIndent(orgs.GetData()[0], "", "\t")
-	// log.Println(string(jOrg))
 
+	// loop through the orgs and query for usage
 	for _, org := range orgs.GetData() {
 		// query data
 		data := QueryOps{
@@ -238,10 +239,8 @@ func main() {
 			log.Fatal("Error executing query template: ", err)
 		}
 
-		queryStr := buf.String()
-		// log.Println(queryStr)
 		resp, err := es_client.Search(
-			es_client.Search.WithBody(strings.NewReader(queryStr)),
+			es_client.Search.WithBody(strings.NewReader(buf.String())),
 		)
 		if err != nil {
 			log.Fatal("Error executing the elastic search: ", err)
@@ -282,7 +281,6 @@ func main() {
 						log.Println(output)
 					}
 				}
-
 			}
 		}
 	}
