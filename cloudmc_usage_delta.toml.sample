@@ -1,0 +1,12 @@
+### CloudMC Credentials
+CMC_ENDPOINT="" # CloudMC API Endpoint
+CMC_KEY=""      # CloudMC API Key
+
+
+### Elastic Credentials
+ELASTIC_CLOUDID="" # Elastic Cloud ID
+ELASTIC_KEY=""     # Elastic API Key
+
+### DEFAULTS
+# QUERY_DAYS_AGO=2
+# THRESHOLD=0.05
